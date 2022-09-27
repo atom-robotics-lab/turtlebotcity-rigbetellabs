@@ -14,7 +14,7 @@
         </inertia>
         <pose>0 0 0 0 -0 0</pose>
       </inertial>
-      <pose>0 0 -0 -1.5708 -0 0</pose>
+      <pose>0 0 -0 -0 -0 0</pose>
       <gravity>1</gravity>
       <self_collide>0</self_collide>
       <kinematic>0</kinematic>
@@ -23,7 +23,7 @@
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://meshes/turtle_city.dae</uri>
+            <uri>model://turtlebotcity/meshes/turtlebot_city.dae</uri>
             <scale>0.1 0.1 0.1</scale>
           </mesh>
         </geometry>
@@ -36,7 +36,7 @@
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://meshes/turtle_city.dae</uri>
+            <uri>model://turtlebotcity/meshes/turtlebot_city.dae</uri>
             <scale>0.1 0.1 0.1</scale>
           </mesh>
         </geometry>
@@ -87,7 +87,7 @@
         </surface>
       </collision>
     </link>
-    <static>0</static>
+    <static>1</static>
     <allow_auto_disable>1</allow_auto_disable>
   </model>
 </sdf>
