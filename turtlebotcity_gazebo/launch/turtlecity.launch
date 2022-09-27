@@ -3,12 +3,11 @@
 	<arg name="y_pos" default="0.0" />
 	<arg name="z_pos" default="0.0213" />
 	<arg name="yaw" default="2.44" />
+	<arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
 
-	<!-- <include file="$(find turtlebot_description)/launch/display.launch">
-		<arg name="rvizconfig" value="$(find turtlebotcity_gazebo)/rviz/turtlebotcity.rviz" />
-	</include>
+ 	<param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
 
-  	<node args="-param robot_description -urdf -model turtlebot -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw)" name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"/> -->
+  	<node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
 
 	<include file="$(find gazebo_ros)/launch/empty_world.launch">
 		<arg name="world_name" value="$(find turtlebotcity_gazebo)/worlds/turtlebotcity.world"/>
