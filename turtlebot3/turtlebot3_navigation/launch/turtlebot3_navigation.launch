@@ -14,7 +14,8 @@
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
 
   <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_up_right.yaml" >
-		<remap from="map" to="planner_map"/>
+		<param name="frame_id" value="planner_map" />
+    <remap from="map" to="planner_map"/>
   </node>
 
   <!-- AMCL -->
@@ -31,4 +32,6 @@
     <node pkg="rviz" type="rviz" name="rviz" required="true"
           args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz"/>
   </group>
+
+  <node pkg="tf" type="static_transform_publisher" name="map_link" args="0 0 0 0 0 0 /map /planner_map 100"/> 
 </launch>
