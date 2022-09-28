@@ -18,6 +18,6 @@
 		<arg name="debug" value="false"/>
 	</include>
 
-	<include file="$(find turtlebotcity_gazebo)/launch/display.launch" />
+	<!-- <include file="$(find turtlebotcity_gazebo)/launch/display.launch" /> -->
 
 </launch>
