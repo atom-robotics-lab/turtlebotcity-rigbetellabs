@@ -3,17 +3,19 @@
   <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
   <arg name="map_file" default="$(find turtlebot_nav)/maps/localization_map.yaml"/>
   <arg name="open_rviz" default="true"/>
-  <arg name="move_forward_only" default="false"/>
+  <arg name="move_forward_only" default="true"/>
 
   <!-- Turtlebot3 -->
   <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch">
     <arg name="model" value="$(arg model)" />
   </include>
 
+  <node pkg="tf" type="static_transform_publisher" name="map_link" args="0 0 0 0 0 0 /map /planner_map 100"/> 
+
   <!-- Map server -->
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
 
-  <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_up_right.yaml" >
+  <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_base.yaml" >
 		<param name="frame_id" value="planner_map" />
     <remap from="map" to="planner_map"/>
   </node>
@@ -33,5 +35,4 @@
           args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz"/>
   </group>
 
-  <node pkg="tf" type="static_transform_publisher" name="map_link" args="0 0 0 0 0 0 /map /planner_map 100"/> 
 </launch>

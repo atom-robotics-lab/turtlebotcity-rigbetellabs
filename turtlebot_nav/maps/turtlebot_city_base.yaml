@@ -1,4 +1,4 @@
-image: turtlebot_city_base.pgm
+image: turtlebot_city_base_corrected.pgm
 resolution: 0.050000
 origin: [-100.000000, -100.000000, 0.000000]
 negate: 0
