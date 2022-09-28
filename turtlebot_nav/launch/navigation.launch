@@ -1,7 +1,11 @@
 <launch>
 
-	<node name="map_server" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot3_house.yaml" />
-	
+	<!-- <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_up_right.yaml" />
+		<remap from="map" to="planner_map"/> -->
+
+
+	<node name="map_server" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/localization_map.yaml" />
+
 	<include file="$(find turtlebot_nav)/launch/amcl.launch" />
 	<include file="$(find turtlebot_nav)/launch/move_base.launch" />
 	

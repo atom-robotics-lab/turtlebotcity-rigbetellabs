@@ -2,7 +2,7 @@
 
 	<node pkg="amcl" type="amcl" name="amcl">
 
-	  <remap from="scan" to="/laser/scan" />
+	  <remap from="scan" to="scan" />
 	  <remap from="cmd_vel" to="cmd_vel"/>
 	  <remap from="odom" to="odom" />
 	  
