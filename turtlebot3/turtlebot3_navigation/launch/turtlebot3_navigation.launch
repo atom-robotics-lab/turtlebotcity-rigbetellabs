@@ -1,7 +1,7 @@
 <launch>
   <!-- Arguments -->
   <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
-  <arg name="map_file" default="$(find turtlebot3_navigation)/maps/map.yaml"/>
+  <arg name="map_file" default="$(find turtlebot_nav)/maps/localization_map.yaml"/>
   <arg name="open_rviz" default="true"/>
   <arg name="move_forward_only" default="false"/>
 
@@ -12,6 +12,10 @@
 
   <!-- Map server -->
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+
+  <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_up_right.yaml" >
+		<remap from="map" to="planner_map"/>
+  </node>
 
   <!-- AMCL -->
   <include file="$(find turtlebot3_navigation)/launch/amcl.launch"/>
