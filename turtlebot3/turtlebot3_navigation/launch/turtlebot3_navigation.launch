@@ -18,6 +18,7 @@
   <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_base.yaml" >
 		<param name="frame_id" value="planner_map" />
     <remap from="map" to="planner_map"/>
+    <remap from="static_map" to="static_planner_map" />
   </node>
 
   <!-- AMCL -->
