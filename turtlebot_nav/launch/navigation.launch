@@ -1,14 +1,25 @@
 <launch>
 
-	<node name="map_server" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/localization_map.yaml" />
+	<arg name="map_file" default="$(find turtlebot_nav)/maps/localization_map.yaml"/>
 
-	<!-- <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_up_right.yaml" />
-		<remap from="map" to="planner_map"/> -->
+	<node pkg="tf" type="static_transform_publisher" name="map_link" args="0 0 0 0 0 0 /map /planner_map 100"/> 
+
+  	<!-- Map server -->
+  	<node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+
+  	<node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebot_nav)/maps/turtlebot_city_up_right.yaml" >
+			<param name="frame_id" value="planner_map" />
+  	  <remap from="map" to="planner_map"/>
+  	  <remap from="static_map" to="static_planner_map" />
+  	</node>
+
 
 	<include file="$(find turtlebot_nav)/launch/amcl.launch" />
 	<include file="$(find turtlebot_nav)/launch/move_base.launch" />
+
+	<include file="$(find turtlebotcity_gazebo)/launch/display.launch" />
+
 	
-	<!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find ebot_nav)/config/my.rviz" output = "screen"/> -->
 
 </launch>
 
