@@ -21,15 +21,14 @@ class MapChanger:
 
         rospy.loginfo("Waiting for /change_map service...")
         rospy.wait_for_service("change_map", timeout=10)
-        rospy.logerr("COULD NOT FIND /change_map service. MAKE SURE NAVSTACK IS RUNNING!")
+        #rospy.logerr("COULD NOT FIND /change_map service. MAKE SURE NAVSTACK IS RUNNING!")
         self.change_map = rospy.ServiceProxy("change_map", LoadMap)
 
     def send_change_map_req(self, map_type):
-        map_yaml_name = "turtlebot_city_" + map_type
 
         pkg_path = self.rospack.get_path('turtlebotcity_maps')
         change_map_req = LoadMapRequest()
-        change_map_req.map_url = pkg_path + "/maps/" + map_yaml_name + ".yaml"
+        change_map_req.map_url = pkg_path + "/maps/" + map_type + ".yaml"
 
         response = self.change_map(change_map_req)
 
@@ -47,16 +46,16 @@ class MapChanger:
 
         yaw_rounded = round(yaw, 1)
 
-        if yaw_rounded < 2.2 and yaw_rounded > -0.7:
+        if -2.2 < yaw_rounded < 0.7 :
             if self.top != True:
-                print("Map: Top-Right")
-                self.send_change_map_req("up_right")
+                print("Map: Down-Left")
+                self.send_change_map_req("down_right")
                 self.top = True 
 
         else:
             if self.top == True:
                 print("Map: Down-Left")
-                self.send_change_map_req("down_left") 
+                self.send_change_map_req("up_left") 
                 self.top = False
     
 
