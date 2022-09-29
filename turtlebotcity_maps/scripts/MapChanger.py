@@ -17,6 +17,8 @@ class MapChanger:
 
         self.rospack = RosPack()
 
+        self.top = True
+
         rospy.loginfo("Waiting for /change_map service...")
         rospy.wait_for_service("change_map", timeout=10)
         rospy.logerr("COULD NOT FIND /change_map service. MAKE SURE NAVSTACK IS RUNNING!")
@@ -27,7 +29,7 @@ class MapChanger:
 
         pkg_path = self.rospack.get_path('turtlebotcity_maps')
         change_map_req = LoadMapRequest()
-        change_map_req.map_url = pkg_path + "/maps/" + map_yaml_name
+        change_map_req.map_url = pkg_path + "/maps/" + map_yaml_name + ".yaml"
 
         response = self.change_map(change_map_req)
 
@@ -36,7 +38,6 @@ class MapChanger:
 
     
     def odom_cb(self, odom_msg):
-        print("in cb")
         quat_x = odom_msg.pose.pose.orientation.x
         quat_y = odom_msg.pose.pose.orientation.y
         quat_z = odom_msg.pose.pose.orientation.z
@@ -46,12 +47,17 @@ class MapChanger:
 
         yaw_rounded = round(yaw, 1)
 
-        # enter conditions here
-        # if yaw_rounded =< 0.1 and yaw_rounded >= yaw_rounded == 1.6:
-        #     self.send_change_map_req("top_right") 
+        if yaw_rounded < 2.2 and yaw_rounded > -0.7:
+            if self.top != True:
+                print("Map: Top-Right")
+                self.send_change_map_req("up_right")
+                self.top = True 
 
-        # if yaw_rounded == 3.1:
-        #     pass
+        else:
+            if self.top == True:
+                print("Map: Down-Left")
+                self.send_change_map_req("down_left") 
+                self.top = False
     
 
 if __name__ == "__main__":
