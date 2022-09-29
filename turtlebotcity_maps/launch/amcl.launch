@@ -6,7 +6,7 @@
 	  <remap from="cmd_vel" to="cmd_vel"/>
 	  <remap from="odom" to="odom" />
 	  
-	  <rosparam file="$(find turtlebot_nav)/config/amcl_params.yaml" command="load" />
+	  <rosparam file="$(find turtlebotcity_maps)/config/amcl_params.yaml" command="load" />
 	  <!-- Publish scans from best pose at a max of 10 Hz -->
 
 	</node>
