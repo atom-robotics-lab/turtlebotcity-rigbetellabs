@@ -195,6 +195,7 @@ include_directories(
 ###############
 ## Env-Hooks ##
 ###############
+catkin_add_env_hooks(turtlebot_city_gazebo SHELLS zsh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env_hooks)
 catkin_add_env_hooks(turtlebot_city_gazebo SHELLS bash DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env_hooks)
 
 #############
