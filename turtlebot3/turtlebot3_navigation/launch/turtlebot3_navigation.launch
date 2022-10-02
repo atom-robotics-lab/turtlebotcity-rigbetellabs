@@ -36,7 +36,7 @@
           args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz"/>
   </group>
 
-  <node pkg="turtlebotcity_maps" name="MapChanger.py" type="MapChanger.py"/>
+  <node pkg="turtlebotcity_maps" name="MapChanger" type="MapChanger.py"/>
 
 
 </launch>

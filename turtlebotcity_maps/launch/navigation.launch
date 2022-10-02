@@ -19,7 +19,7 @@
 
 	<include file="$(find turtlebotcity_gazebo)/launch/display.launch" />
 
-	<node pkg="turtlebotcity_maps" name="MapChanger.py" type="MapChanger.py"/>
+	<node pkg="turtlebotcity_maps" name="MapChanger" type="MapChanger.py"/>
 
 	
 
