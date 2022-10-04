@@ -16,8 +16,8 @@ class LaneFollower:
 
         rospy.init_node("lane_follower")
         self.image_sub = rospy.Subscriber("camera/image", Image, self.image_cb)
-        #self.planner_vel_sub = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.goal_callback)
-        #self.odom_sub = rospy.Subscriber("odom", Odometry, self.odom_cb)
+        self.planner_vel_sub = rospy.Subscriber("move_base_simple/goal", PoseStamped, self.goal_callback)
+        self.odom_sub = rospy.Subscriber("odom", Odometry, self.odom_cb)
 
         self.cv_bridge = CvBridge()
 
@@ -54,8 +54,13 @@ class LaneFollower:
                                         method=cv2.CHAIN_APPROX_NONE)
 
         # area thresholding to eliminate noise in lane detection
-        contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 4 ]
-        print(contours)
+        #contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 4 ]
+
+        for cnt in contours:
+            if cv2.contourArea(cnt) > 4000:
+                #print("Intersection detected")
+
+        #print(contours)
         #contours = max(contours, key = cv2.contourArea)
 
         for i in contours:
@@ -72,7 +77,42 @@ class LaneFollower:
 
         ros_img = self.cv_bridge.cv2_to_imgmsg(cv_img_cnts, encoding="rgb8")
 
+
         self.image_pub.publish(ros_img)
+
+
+    def odom_cb(self, odom_data):
+        self.bot_x = odom_data.pose.pose.position.x
+        self.bot_y = odom_data.pose.pose.position.y
+        self.bot_angle = euler_from_quaternion[odom_data.pose.pose.orientation.x, odom_data.pose.pose.orientation.y, 
+                                               odom_data.pose.pose.orientation.z, odom_data.pose.pose.orientation.w]
+
+
+    def goal_callback(self, goal):
+        goal_x = goal.pose.position.x 
+        goal_y = goal.pose.position.y
+        x = goal.pose.orientation.x
+        y = goal.pose.orientation.y
+        z = goal.pose.orientation.z
+        w = goal.pose.orientation.w 
+        orientation_list =  [x,y,z,w]
+        (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
+        print("<-----New Goal Recived----->")
+        print("X: {}    |   Y: {}   |   Yaw: {}".format(goal_x, goal_y, yaw))
+
+
+        get_error(goal_x, goal_y, yaw)
+
+
+
+    def get_error(self,dest_x,dest_y):
+      
+        bot_theta_error = np.arctan((dest_y - self.bot_y)/(dest_x - self.bot_x))
+        bot_position_error = np.sqrt((pow(dest_y - self.bot_y), 2) + pow(dest_x - self.bot_x, 2))
+
+        print("position error: {}   |   Theta_error: {}".format(bot_theta_error, bot_position_error))
+
+        return [bot_theta_error, bot_position_error]
 
 
 if __name__ == "__main__":

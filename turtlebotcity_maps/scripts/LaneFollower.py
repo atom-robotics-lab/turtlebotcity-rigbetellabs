@@ -3,6 +3,7 @@
 import rospy
 import cv2
 import numpy as np
+import math
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, PoseStamped
 from nav_msgs.msg import Odometry
@@ -29,6 +30,12 @@ class LaneFollower:
 
         self.goal_reached = True
         self.blue_detected = False
+        self.yellow_detected = False
+
+        self.cx = 0
+        self.move(0, 0)
+
+        print("***** Lane Following Node Started *****")
 
 
         self.p_const = 0.008
@@ -41,10 +48,15 @@ class LaneFollower:
         self.vel_pub.publish(vel)
 
     def odom_cb(self, odom_data):
-        self.bot_x = odom_data.pose.pose.position.x
-        self.bot_y = odom_data.pose.pose.position.y
-        self.bot_angle = euler_from_quaternion[odom_data.pose.pose.orientation.x, odom_data.pose.pose.orientation.y, 
-                                               odom_data.pose.pose.orientation.z, odom_data.pose.pose.orientation.w]
+        self.bot_x = odom_data.pose.pose.position.x;
+        self.bot_y = odom_data.pose.pose.position.y;
+        x = odom_data.pose.pose.orientation.x;
+        y = odom_data.pose.pose.orientation.y;
+        z = odom_data.pose.pose.orientation.z;
+        w = odom_data.pose.pose.orientation.w;
+        orientation_list =  [x,y,z,w]
+        (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
+        self.bot_angle = yaw
 
     def image_cb(self, img):
         try:
@@ -59,17 +71,31 @@ class LaneFollower:
 
         cv_img_mask = cv2.inRange(cv_img_hsv, self.lane_lower_thresh, self.lane_upper_thresh)
 
-        cv_img_mask_blue = cv2.inRange(cv_img_hsv, self.lane_lower_thresh, self.lane_upper_thresh)
-        
+        cv_img_mask_blue = cv2.inRange(cv_img_hsv, np.array([110, 100, 100]), np.array([130, 255, 255]))
+
 
         contours, _ = cv2.findContours(image=cv_img_mask, 
+                                        mode=cv2.RETR_TREE, 
+                                        method=cv2.CHAIN_APPROX_NONE)
+
+        contours_blue, _ = cv2.findContours(image=cv_img_mask_blue, 
                                         mode=cv2.RETR_TREE, 
                                         method=cv2.CHAIN_APPROX_NONE)
 
         # area thresholding to eliminate noise in lane detection
         contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 4 ]
 
-        #contours = max(contours, key = cv2.contourArea)
+        if contours:
+            self.yellow_detected = True
+
+        for cnt in contours_blue:
+            #print(cv2.contourArea(cnt))
+            if cv2.contourArea(cnt) > 800:
+                #print(cv2.contourArea(cnt))
+                #print("Intersection detected")
+                self.blue_detected = True
+            else:
+                self.blue_detected = False
 
         for i in contours:
             M = cv2.moments(i)
@@ -80,6 +106,10 @@ class LaneFollower:
 
         cv_img_cnts = cv2.drawContours(image=cv_img, contours=contours, 
                             contourIdx=-1, color=(255, 0, 0), 
+                            thickness=2, lineType=cv2.LINE_AA)
+
+        cv_img_cnts = cv2.drawContours(image=cv_img_cnts, contours=contours_blue, 
+                            contourIdx=-1, color=(0, 0, 255), 
                             thickness=2, lineType=cv2.LINE_AA)
 
 
@@ -101,16 +131,30 @@ class LaneFollower:
         (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
         print("<-----New Goal Recived----->")
         print("X: {}    |   Y: {}   |   Yaw: {}".format(goal_x, goal_y, yaw))
+        print("Bot_X: {}   |   Bot_Y: {}".format(self.bot_x, self.bot_y))
 
 
-        go_to_goal(goal_x, goal_y, yaw)
+        self.go_to_goal(goal_x, goal_y, yaw)
 
 
 
     def get_error(self,dest_x,dest_y):
       
         bot_theta_error = np.arctan((dest_y - self.bot_y)/(dest_x - self.bot_x))
-        bot_position_error = np.sqrt((pow(dest_y - self.bot_y), 2) + pow(dest_x - self.bot_x, 2))
+        bot_position_error = np.sqrt(pow(dest_y - self.bot_y, 2) + pow(dest_x - self.bot_x, 2))
+
+        bot_theta = self.bot_angle      # bot making angle with x axis 
+        bot_x_coordinate = round(self.bot_x, 2) # current x coordinate of bot
+        bot_y_coordinate = round(self.bot_y,2)  # current y cordinate of bot
+        bot_array = [np.cos(bot_theta),np.sin(bot_theta)]
+        bot_vector = np.array(bot_array)
+        reach_point_array = [dest_x - bot_x_coordinate , dest_y - bot_y_coordinate ]
+        reach_point_vector = np.array(reach_point_array)
+        dot_product = reach_point_vector.dot(bot_vector)
+        bot_theta_error = np.arccos(dot_product/(np.sqrt((dest_x - bot_x_coordinate)**2+(dest_y - bot_y_coordinate)**2)))
+        bot_position_error = np.sqrt((dest_x - bot_x_coordinate)**2+(dest_y - bot_y_coordinate)**2)
+        if np.cos(bot_theta)*(dest_y - bot_y_coordinate) -  np.sin(bot_theta)*(dest_x - bot_x_coordinate) > 0 :
+           bot_theta = -bot_theta 
 
         return [bot_theta_error, bot_position_error]
 
@@ -119,62 +163,85 @@ class LaneFollower:
     def go_to_goal(self, goal_x, goal_y, yaw):
 
         self.theta_error, self.position_error = self.get_error(goal_x, goal_y)
+        print("position error: {}   |   Theta_error: {}".format(self.position_error, self.theta_error))
         self.find_line()
-        while self.position_error < 0.2:
+        print("---Start Navigation---")
+        while self.position_error > 0.2:
+
+            self.theta_error, self.position_error = self.get_error(goal_x, goal_y)
+
             if self.blue_detected != True:
-                self.follow_wall()
+
+                if self.yellow_detected!= True:
+                    self.find_line()
+
+                else:    
+                    self.follow_wall()
 
             else:
                 self.blue_detected = False
-                self.theta_error, _ = self.get_error(goal_x, goal_y)
-                if self.theta_error < math.pi/4 and self.theta_error > -1 * math.pi/4:
+                print("Intersection detected")
+                self.move(0,0)
+                sleep(4)
+                print("Moving straight")
+                self.move(0.2,0.02)
+                sleep(2)
+                print("Theta error: {}".format(self.theta_error))
+                print("Theta bot: {}".format(self.bot_x))
+
+                if self.theta_error < math.pi/5 and self.theta_error > -1 * math.pi/5:
                     print("Going Straight")
-                    move(0.2,0)
-                    time.sleep(4)
+                    self.move(0.2,0)
+                    sleep(4)
 
-                if self.theta_error >  math.pi/4:
+                if self.theta_error >  math.pi/5:
                     print("Turning Right")
-                    move(0.2,0)
-                    time.sleep(2)
-                    move(0,0)
-                    time.sleep(2)
-                    move(0,0.2)
-                    time.sleep(4)
+                    self.move(0,0.2)
+                    sleep(5)
                 
-                if self.theta_error >  math.pi/4:
+                if self.theta_error <  -1 * math.pi/5:
                     print("Turning Left")
-                    move(0.2,0)
-                    time.sleep(2)
-                    move(0,0)
-                    time.sleep(2)
-                    move(0,-0.2)
-                    time.sleep(4)
+                    self.move(0,-0.2)
+                    sleep(5)
+                else:
+                    print("Unknown Case")
+                    print("Theta error: {}".format(self.theta_error))
 
-        
+                self.blue_detected = False
 
-                
+        print("position error: {}   |   Theta_error: {}".format(self.position_error, self.theta_error))
+        self.move(0,0)
+        print("Goal Reached")
+
 
 
     def find_line(self):
-        while self.cx < 18 and self.cx > 12::
-            move(0,0.2)
+        #print(self.cx)
+        # self.move(0,0.5)
+        # sleep(2)
+        # self.move(0, 0)
+        while self.cx not in range(15, 35):
+            #print("Finding Line: {}".format(self.cx))
+            self.move(0,0.15)
+        print("Yellow Line Found: {}".format(self.cx))
+        self.move(0, 0)
 
     def follow_wall(self):
 
-        error = self.cx - 30
-        print(self.cx)
+        error = self.cx - 25
+        #print(self.cx)
 
-        if self.cx != 15:
-            self.move(0.2, -1 * error * self.p_const)
+        if self.cx != 25:
+            self.move(0.15, -1 * error * self.p_const)
         
         else:
-            self.move(0.1, 0)
+            self.move(0.2, 0)
                     
 
         
 if __name__ == "__main__":
-    lower_thresh = np.array([20, 100, 120])
-    upper_thresh = np.array([30, 255, 255])
+    lower_thresh = np.array([22, 100, 100])
+    upper_thresh = np.array([25, 255, 255])
     lane_follower = LaneFollower(lower_thresh, upper_thresh)
     rospy.spin()
         
