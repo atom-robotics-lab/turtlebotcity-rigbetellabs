@@ -4,7 +4,14 @@
 
 		<include>
 			<uri>model://sun</uri>
+			<!-- <name>sun_2</name> -->
 		</include>
+
+		<!-- <include>
+			<uri>model://sun</uri>
+			<name>sun_1</name>
+			<pose>-1 -2 0 0 0 0</pose>
+		</include> -->
 
 <!-- custom models -->
 		<include>

@@ -153,8 +153,10 @@ class LaneFollower:
         dot_product = reach_point_vector.dot(bot_vector)
         bot_theta_error = np.arccos(dot_product/(np.sqrt((dest_x - bot_x_coordinate)**2+(dest_y - bot_y_coordinate)**2)))
         bot_position_error = np.sqrt((dest_x - bot_x_coordinate)**2+(dest_y - bot_y_coordinate)**2)
-        if np.cos(bot_theta)*(dest_y - bot_y_coordinate) -  np.sin(bot_theta)*(dest_x - bot_x_coordinate) > 0 :
-           bot_theta = -bot_theta 
+        #print("big big")
+        #print(np.cos(bot_theta)*(dest_y - bot_y_coordinate) -  np.sin(bot_theta)*(dest_x - bot_x_coordinate))
+        if np.cos(bot_theta)*(dest_y - bot_y_coordinate) -  np.sin(bot_theta)*(dest_x - bot_x_coordinate) < 0 :
+           bot_theta_error = -bot_theta_error 
 
         return [bot_theta_error, bot_position_error]
 
@@ -184,25 +186,33 @@ class LaneFollower:
                 self.move(0,0)
                 sleep(4)
                 print("Moving straight")
-                self.move(0.2,0.02)
-                sleep(2)
+                self.move(0.1,0.02)
+                sleep(5)
                 print("Theta error: {}".format(self.theta_error))
                 print("Theta bot: {}".format(self.bot_x))
 
                 if self.theta_error < math.pi/5 and self.theta_error > -1 * math.pi/5:
                     print("Going Straight")
-                    self.move(0.2,0)
+                    self.move(0.1,0)
                     sleep(4)
 
                 if self.theta_error >  math.pi/5:
-                    print("Turning Right")
+                    print("Turning Left")
                     self.move(0,0.2)
-                    sleep(5)
+                    sleep(3)
+                    while self.cx not in range(15, 35):
+                        self.move(0,0.15)
+                        #print("Retured to yellow: {}".format(self.cx))
+                        self.move(0, 0)
                 
                 if self.theta_error <  -1 * math.pi/5:
-                    print("Turning Left")
-                    self.move(0,-0.2)
-                    sleep(5)
+                    print("Turning Right")
+                    self.move(0.03,-0.2)
+                    sleep(3)
+                    while self.cx not in range(15, 35):
+                        self.move(0,-0.15)
+                        #print("Retured to yellow: {}".format(self.cx))
+                        self.move(0, 0)
                 else:
                     print("Unknown Case")
                     print("Theta error: {}".format(self.theta_error))
@@ -240,7 +250,7 @@ class LaneFollower:
 
         
 if __name__ == "__main__":
-    lower_thresh = np.array([22, 100, 100])
+    lower_thresh = np.array([22, 130, 150])
     upper_thresh = np.array([25, 255, 255])
     lane_follower = LaneFollower(lower_thresh, upper_thresh)
     rospy.spin()
