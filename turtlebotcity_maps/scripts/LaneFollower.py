@@ -6,6 +6,7 @@ import numpy as np
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge, CvBridgeError
+from time import sleep
 
 
 class LaneFollower:
@@ -17,7 +18,6 @@ class LaneFollower:
         self.cv_bridge = CvBridge()
 
         self.image_pub = rospy.Publisher("lane_follower/image", Image, queue_size=10)
-        self.vel_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
         self.lane_lower_thresh = lane_lower_thresh
         self.lane_upper_thresh = lane_upper_thresh
@@ -27,7 +27,15 @@ class LaneFollower:
 
         self.p_const = 0.008
 
-        self.vel = Twist()
+
+    def move(self, linear, angular):
+        vel = Twist()
+        vel.linear.x = linear
+        vel.angular.z = angular
+        vel_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        vel_pub.publish(vel)
+        
+
 
     def image_cb(self, img):
         try:
@@ -35,7 +43,7 @@ class LaneFollower:
         except CvBridgeError:
             rospy.logerr("Cannot Convert Image")
 
-        cv_img = cv_img[80:200, 70:230]
+        cv_img = cv_img[80:200, 50:250]
         #print(cv_img.shape)
 
         cv_img_hsv = cv2.cvtColor(cv_img, cv2.COLOR_BGR2HSV)
@@ -72,30 +80,38 @@ class LaneFollower:
 
     def vel_cb(self, vel):
 
-        if vel.linear.x != 0:
-            self.follow_wall()
-        else:
-            self.vel.linear.x = 0
-            self.vel.angular.z = 0
-            self.vel_pub.publish(self.vel)
+        if abs(vel.linear.x) != 0:
+            if vel.angular.z > 0.5:
+                print("rotating right")
+                self.move(0.2, 0)
+                sleep(2)
+                self.move(0, 0.2)
+                sleep(3)
 
+            if vel.angular.z < -0.5:
+                print("rotating left")
+                self.move(0.2, 0)
+                sleep(2)
+                self.move(0, -0.2)
+                sleep(3)
+
+            else:
+                self.follow_wall()
+        else:
+            self.move(0,0)
 
 
     def follow_wall(self):
 
-        error = self.cx - 15
+        error = self.cx - 30
         print(self.cx)
 
         if self.cx != 15:
-            self.vel.linear.x = 0.2
-            self.vel.angular.z = -1 * error * self.p_const
+            self.move(0.2, -1 * error * self.p_const)
         
         else:
-            self.vel.linear.x = 0.1
-            self.vel.angular.z = 0
-        
-        self.vel_pub.publish(self.vel)
-            
+            self.move(0.1, 0)
+                    
 
         
 if __name__ == "__main__":
