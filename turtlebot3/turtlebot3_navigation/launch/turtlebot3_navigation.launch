@@ -15,7 +15,7 @@
   <!-- Map server -->
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
 
-  <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebotcity_maps)/maps/up_left.yaml" >
+  <node name="map_server2" pkg="map_server" type="map_server" args="$(find turtlebotcity_maps)/maps/planner_map.yaml" >
 		<param name="frame_id" value="planner_map" />
     <remap from="map" to="planner_map"/>
     <remap from="static_map" to="static_planner_map" />
@@ -33,10 +33,10 @@
   <!-- rviz -->
   <group if="$(arg open_rviz)"> 
     <node pkg="rviz" type="rviz" name="rviz" required="true"
-          args="-d $(find turtlebot3_navigation)/rviz/turtlebot3_navigation.rviz"/>
+          args="-d $(find turtlebot3_navigation)/rviz/turtlebotcv_nav.rviz"/>
   </group>
 
-  <node pkg="turtlebotcity_maps" name="MapChanger" type="MapChanger.py"/>
+  <!-- <node pkg="turtlebotcity_maps" name="MapChanger" type="MapChanger.py"/> -->
 
 
 </launch>
