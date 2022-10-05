@@ -83,10 +83,21 @@ class LaneFollower:
                                         method=cv2.CHAIN_APPROX_NONE)
 
         # area thresholding to eliminate noise in lane detection
-        contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 4 ]
+        contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 10 ]
 
         if contours:
             self.yellow_detected = True
+            Max_contour = max(contours, key = cv2.contourArea)
+
+            M = cv2.moments(Max_contour)
+
+            if M['m00'] != 0:
+                self.cx = int(M['m10']/M['m00'])
+                self.cy = int(M['m01']/M['m00'])
+            #print(self.cx)
+
+        else:
+            self.yellow_detected = False
 
         for cnt in contours_blue:
             #print(cv2.contourArea(cnt))
@@ -96,13 +107,7 @@ class LaneFollower:
                 self.blue_detected = True
             else:
                 self.blue_detected = False
-
-        for i in contours:
-            M = cv2.moments(i)
-            if M['m00'] != 0:
-                self.cx = int(M['m10']/M['m00'])
-                self.cy = int(M['m01']/M['m00'])
-        #print(self.cx)
+        
 
         cv_img_cnts = cv2.drawContours(image=cv_img, contours=contours, 
                             contourIdx=-1, color=(255, 0, 0), 
@@ -168,7 +173,10 @@ class LaneFollower:
         print("position error: {}   |   Theta_error: {}".format(self.position_error, self.theta_error))
         self.find_line()
         print("---Start Navigation---")
+        r = rospy.Rate(10)
+        
         while self.position_error > 0.2:
+            r.sleep()
 
             self.theta_error, self.position_error = self.get_error(goal_x, goal_y)
 
@@ -187,9 +195,19 @@ class LaneFollower:
                 sleep(4)
                 print("Moving straight")
                 self.move(0.1,0.02)
-                sleep(5)
+                sleep(3)
                 print("Theta error: {}".format(self.theta_error))
                 print("Theta bot: {}".format(self.bot_x))
+
+                if self.position_error < 0.2:
+                    print("Already on the goal")
+                    break
+                self.move(0.1,0.02)
+                sleep(3)
+
+                if self.position_error < 0.2:
+                    print("Already on the goal")
+                    break
 
                 if self.theta_error < math.pi/5 and self.theta_error > -1 * math.pi/5:
                     print("Going Straight")
@@ -214,14 +232,14 @@ class LaneFollower:
                         #print("Retured to yellow: {}".format(self.cx))
                         self.move(0, 0)
                 else:
-                    print("Unknown Case")
-                    print("Theta error: {}".format(self.theta_error))
+                    print("Unknown Case, Blue detected: {}".format(self.blue_detected))
+                    self.move(0, 0)
 
                 self.blue_detected = False
 
         print("position error: {}   |   Theta_error: {}".format(self.position_error, self.theta_error))
         self.move(0,0)
-        print("Goal Reached")
+        print("Position Reached Reached")
 
 
 
@@ -230,7 +248,7 @@ class LaneFollower:
         # self.move(0,0.5)
         # sleep(2)
         # self.move(0, 0)
-        while self.cx not in range(15, 35):
+        while self.cx not in range(20, 35):
             #print("Finding Line: {}".format(self.cx))
             self.move(0,0.15)
         print("Yellow Line Found: {}".format(self.cx))
