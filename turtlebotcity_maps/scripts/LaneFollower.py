@@ -33,12 +33,13 @@ class LaneFollower:
         self.yellow_detected = False
 
         self.cx = 0
+        self.bx = 0
         self.move(0, 0)
 
         print("***** Lane Following Node Started *****")
 
 
-        self.p_const = 0.008
+        self.p_const = 0.004
 
 
     def move(self, linear, angular):
@@ -66,7 +67,7 @@ class LaneFollower:
         except CvBridgeError:
             rospy.logerr("Cannot Convert Image")
 
-        cv_img = cv_img[80:200, 50:250]
+        cv_img = cv_img[100:200, 50:250]
         #print(cv_img.shape)
 
         cv_img_hsv = cv2.cvtColor(cv_img, cv2.COLOR_BGR2HSV)
@@ -107,6 +108,11 @@ class LaneFollower:
             Max_contour_blue = max(contours_blue, key = cv2.contourArea)
             self.blue_area= cv2.contourArea(Max_contour_blue)
 
+            M = cv2.moments(Max_contour_blue)
+
+            if M['m00'] != 0:
+                self.bx = int(M['m10']/M['m00'])
+
 
         cv_img_cnts = cv2.drawContours(image=cv_img, contours=contours, 
                             contourIdx=-1, color=(255, 0, 0), 
@@ -117,7 +123,9 @@ class LaneFollower:
                             thickness=2, lineType=cv2.LINE_AA)
 
 
-        cv_img_cnts = cv2.line(cv_img_cnts, (self.cx, 0), (self.cx, 200), (0, 255, 0), 5)
+        cv_img_cnts = cv2.line(cv_img_cnts, (self.cx, 0), (self.cx, 200), (0, 255, 0), 3)
+
+        cv_img_cnts = cv2.line(cv_img_cnts, (self.bx, 0), (self.bx, 200), (0, 0, 255), 3)
 
         ros_img = self.cv_bridge.cv2_to_imgmsg(cv_img_cnts, encoding="rgb8")
 
@@ -179,7 +187,7 @@ class LaneFollower:
 
             self.theta_error, self.position_error = self.get_error(goal_x, goal_y)
 
-            if self.blue_area < 800:
+            if self.blue_area < 700:
 
                 if self.yellow_detected!= True:
                     self.find_line()
@@ -191,9 +199,15 @@ class LaneFollower:
                 print("Intersection detected")
                 self.move(0,0)
                 sleep(4)
+                print("Alligning to marker")
+
+                self.allign_marker()
+
                 print("Moving straight")
 
                 while self.blue_area > 80:
+
+                    self.theta_error, self.position_error = self.get_error(goal_x, goal_y)
 
                     if self.position_error < 0.2:
                         print("Already on the goal")
@@ -218,7 +232,7 @@ class LaneFollower:
                     print("Turning Left")
                     self.move(0.03,0.2)
                     sleep(5)
-                    while self.cx not in range(15, 50):
+                    while self.cx not in range(15, 100):
                         self.move(0,0.15)
                         #print("Retured to yellow: {}".format(self.cx))
                         self.move(0, 0)
@@ -227,7 +241,7 @@ class LaneFollower:
                     print("Turning Right")
                     self.move(0.03,-0.2)
                     sleep(5)
-                    while self.cx not in range(15, 50):
+                    while self.cx not in range(15, 100):
                         self.move(0,-0.15)
                         #print("Retured to yellow: {}".format(self.cx))
                         self.move(0, 0)
@@ -287,6 +301,21 @@ class LaneFollower:
             print("*****************************")                      
             self.move(0,0)
 
+
+    def allign_marker(self):
+        #print(self.cx)
+        # self.move(0,0.5)
+        # sleep(2)
+        # self.move(0, 0)
+        while self.bx not in range(40, 55):
+            #print("Finding Line: {}".format(self.cx))
+            if self.bx > 55 and self.bx < 200:
+                self.move(0, -0.15)
+            if self.bx < 40: 
+                self.move(0,0.15)
+        print("Marker Found: {}".format(self.bx))
+        self.move(0, 0)
+
             
 
 
@@ -295,22 +324,25 @@ class LaneFollower:
         # self.move(0,0.5)
         # sleep(2)
         # self.move(0, 0)
-        while self.cx not in range(20, 35):
+        while self.cx not in range(25, 45):
             #print("Finding Line: {}".format(self.cx))
-            self.move(0,0.15)
+            if self.cx > 45 and self.cx < 200:
+                self.move(0, -0.15)
+            if self.cx < 25: 
+                self.move(0,0.15)
         print("Yellow Line Found: {}".format(self.cx))
         self.move(0, 0)
 
     def follow_wall(self):
 
-        error = self.cx - 25
+        error = self.cx - 35
         #print(self.cx)
 
-        if self.cx != 25:
-            self.move(0.15, -1 * error * self.p_const)
+        if self.cx != 35:
+            self.move(0.125, -1 * error * self.p_const)
         
         else:
-            self.move(0.2, 0)
+            self.move(0.15, 0)
                     
 
         
