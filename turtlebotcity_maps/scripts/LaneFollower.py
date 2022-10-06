@@ -29,7 +29,7 @@ class LaneFollower:
         self.lane_upper_thresh = lane_upper_thresh
 
         self.goal_reached = True
-        self.blue_detected = False
+        self.blue_area = 0
         self.yellow_detected = False
 
         self.cx = 0
@@ -59,6 +59,8 @@ class LaneFollower:
         self.bot_angle = yaw
 
     def image_cb(self, img):
+
+        self.cx = 0
         try:
             cv_img = self.cv_bridge.imgmsg_to_cv2(img, desired_encoding="bgr8")
         except CvBridgeError:
@@ -69,7 +71,7 @@ class LaneFollower:
 
         cv_img_hsv = cv2.cvtColor(cv_img, cv2.COLOR_BGR2HSV)
 
-        cv_img_mask = cv2.inRange(cv_img_hsv, self.lane_lower_thresh, self.lane_upper_thresh)
+        cv_img_mask = cv2.inRange(cv_img_hsv, np.array([22, 130, 150]), np.array([25, 255, 255]))
 
         cv_img_mask_blue = cv2.inRange(cv_img_hsv, np.array([110, 100, 100]), np.array([130, 255, 255]))
 
@@ -85,6 +87,7 @@ class LaneFollower:
         # area thresholding to eliminate noise in lane detection
         contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 10 ]
 
+
         if contours:
             self.yellow_detected = True
             Max_contour = max(contours, key = cv2.contourArea)
@@ -99,15 +102,11 @@ class LaneFollower:
         else:
             self.yellow_detected = False
 
-        for cnt in contours_blue:
-            #print(cv2.contourArea(cnt))
-            if cv2.contourArea(cnt) > 800:
-                #print(cv2.contourArea(cnt))
-                #print("Intersection detected")
-                self.blue_detected = True
-            else:
-                self.blue_detected = False
-        
+        if contours_blue:
+            self.yellow_detected = True
+            Max_contour_blue = max(contours_blue, key = cv2.contourArea)
+            self.blue_area= cv2.contourArea(Max_contour_blue)
+
 
         cv_img_cnts = cv2.drawContours(image=cv_img, contours=contours, 
                             contourIdx=-1, color=(255, 0, 0), 
@@ -180,7 +179,7 @@ class LaneFollower:
 
             self.theta_error, self.position_error = self.get_error(goal_x, goal_y)
 
-            if self.blue_detected != True:
+            if self.blue_area < 800:
 
                 if self.yellow_detected!= True:
                     self.find_line()
@@ -189,21 +188,22 @@ class LaneFollower:
                     self.follow_wall()
 
             else:
-                self.blue_detected = False
                 print("Intersection detected")
                 self.move(0,0)
                 sleep(4)
                 print("Moving straight")
-                self.move(0.1,0.02)
-                sleep(3)
-                print("Theta error: {}".format(self.theta_error))
-                print("Theta bot: {}".format(self.bot_x))
 
-                if self.position_error < 0.2:
-                    print("Already on the goal")
-                    break
-                self.move(0.1,0.02)
-                sleep(3)
+                while self.blue_area > 80:
+
+                    if self.position_error < 0.2:
+                        print("Already on the goal")
+                        break
+                    self.move(0.1,0.02)
+                    # sleep(4)
+                    # print("Theta error: {}".format(self.theta_error))
+                    # print("Theta bot: {}".format(self.bot_x))
+
+                self.theta_error, self.position_error = self.get_error(goal_x, goal_y)
 
                 if self.position_error < 0.2:
                     print("Already on the goal")
@@ -212,13 +212,13 @@ class LaneFollower:
                 if self.theta_error < math.pi/5 and self.theta_error > -1 * math.pi/5:
                     print("Going Straight")
                     self.move(0.1,0)
-                    sleep(4)
+                    sleep(2)
 
                 if self.theta_error >  math.pi/5:
                     print("Turning Left")
-                    self.move(0,0.2)
-                    sleep(3)
-                    while self.cx not in range(15, 35):
+                    self.move(0.03,0.2)
+                    sleep(5)
+                    while self.cx not in range(15, 50):
                         self.move(0,0.15)
                         #print("Retured to yellow: {}".format(self.cx))
                         self.move(0, 0)
@@ -226,21 +226,68 @@ class LaneFollower:
                 if self.theta_error <  -1 * math.pi/5:
                     print("Turning Right")
                     self.move(0.03,-0.2)
-                    sleep(3)
-                    while self.cx not in range(15, 35):
+                    sleep(5)
+                    while self.cx not in range(15, 50):
                         self.move(0,-0.15)
                         #print("Retured to yellow: {}".format(self.cx))
                         self.move(0, 0)
                 else:
-                    print("Unknown Case, Blue detected: {}".format(self.blue_detected))
+                    print("Unknown Case, Blue detected: {}".format(self.blue_area))
                     self.move(0, 0)
 
-                self.blue_detected = False
 
         print("position error: {}   |   Theta_error: {}".format(self.position_error, self.theta_error))
         self.move(0,0)
+
+        #self.goto(goal_x, goal_y)
         print("Position Reached Reached")
 
+
+    def fix_error(self, linear_error, orien_error):
+        
+        if linear_error != 0:
+            # moving in straight line
+            self.move(self.P*linear_error, 0)
+            
+        if orien_error != 0:           
+            # fixing the yaw     
+             self.move(0,self.P*-1*orien_error)
+
+
+
+    def goto(self,dest_x,dest_y):
+
+        print("Starting 2 point navigation")
+
+        self.P = 1
+        self.theta_precision = 0.1
+        self.dist_precision = 0.1
+
+            
+        bot_theta_error, bot_position_error = self.get_error(dest_x, dest_y)
+
+        while((np.abs(bot_theta_error) > self.theta_precision) or (np.abs(bot_position_error) > self.dist_precision)):
+
+            while (np.abs(bot_theta_error) > self.theta_precision) :  
+               bot_theta_error, bot_position_error = self.get_error(dest_x, dest_y)
+               self.fix_error(0, bot_theta_error) 
+
+            while (np.abs(bot_position_error) > self.dist_precision):                                                          
+                bot_theta_error, bot_position_error = self.get_error(dest_x, dest_y)
+                self.fix_error(bot_position_error ,0)  
+
+                while (np.abs(bot_theta_error) > self.theta_precision) : 
+                     
+                    self.fix_error(0,bot_theta_error) 
+                    bot_theta_error, bot_position_error = self.get_error(dest_x, dest_y) 
+        
+        if bot_position_error < self.dist_precision and bot_theta_error < self.theta_precision :
+            print("*****************************")
+            print("**HURRAY !! GOAL REACHED*****")
+            print("*****************************")                      
+            self.move(0,0)
+
+            
 
 
     def find_line(self):
