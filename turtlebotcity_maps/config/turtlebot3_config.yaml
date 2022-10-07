@@ -1,0 +1,10 @@
+max_speed: 0.2
+
+hsv_yellow_upper: [32, 115, 235]
+hsv_yellow_lower: [21, 49, 173]
+hsv_blue_upper: [105, 210, 220]
+hsv_blue_lower: [100, 140, 140]
+
+max_blue_area: 700
+
+
